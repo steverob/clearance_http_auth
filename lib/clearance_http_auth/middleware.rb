@@ -27,9 +27,15 @@ module Clearance
       private
 
       def targeting_api?(env)
-        return false unless env['action_dispatch.request.path_parameters']
-        format = env['action_dispatch.request.path_parameters'][:format]
-        format && Configuration.api_formats.include?(format)
+        if env['action_dispatch.request.path_parameters']
+          format = env['action_dispatch.request.path_parameters'][:format]
+          return true if format && Configuration.api_formats.include?(format)
+        end
+
+        # Some API clients will only set an Accept: header, so we can try to match
+        # defined formats within this header.
+        format_regexp = Regexp.union(Configuration.api_formats.collect{|format| "application/#{format}"})
+        return true if !!(env['HTTP_ACCEPT'] =~ format_regexp)
       end
 
     end
